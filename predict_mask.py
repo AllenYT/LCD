@@ -14,8 +14,8 @@ def time_synchronized():
 def main():
     data_transform = transforms.Compose([transforms.ToTensor()])
     classes = 1 
-    weights_path = "/home/server/Desktop/zky-sxr/yinteng/LCDNet/LCD_10.pth"
-    img_path = "/home/server/Desktop/zky-sxr/yinteng/LCDNet/dest/images/verse001_250_training.png"
+    weights_path = "/home/sda/Users/YT/LCDnet/LCD_11.pth"
+    img_path = "/home/sda/Users/YT/DRIVE/training/imagespine/verse001_250_training.png"
     # roi_path = "/home/sda/Users/YT/unet/DRIVE/test/label/verse042_250_manual1.png"
     assert os.path.exists(weights_path), f"weights {weights_path} not found."
     assert os.path.exists(img_path), f"image {img_path} not found."
@@ -46,24 +46,14 @@ def main():
         # init model
         t_start = time_synchronized()
         output = model(img.to(device))[1]
-        print(output.shape)
-        print(output.shape)
-        print(torch.max(output))
         t_end = time_synchronized()
-        
         print("inference+NMS time: {}".format(t_end - t_start))
         output = output.argmax(1).squeeze(0)
-        print(output.shape)
-        print(torch.max(output))
-        output = output.to(device=device, dtype=torch.float32)
-        output = F.softmax(output, dim=1)[0]
-        # prediction = output.argmax(1).squeeze(0)
-        # prediction = prediction.to("cpu").numpy().astype(np.uint8)
         # 将前景对应的像素值改成255(白色)
         # print(torch.min(output))
         output = output.to("cpu").numpy().astype(np.uint8)
         output[output == 0 ] = 0
-        # # 将不敢兴趣的区域像素设置成0(黑色)
+        # # # 将不敢兴趣的区域像素设置成0(黑色)
         output[output == 1 ] = 255
         mask = Image.fromarray(output)
         mask.save("test_result2.png")

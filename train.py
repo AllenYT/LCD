@@ -113,14 +113,40 @@ def dice_loss(x: torch.Tensor, target: torch.Tensor, multiclass: bool = False, i
     fn = multiclass_dice_coeff if multiclass else dice_coeff
     return 1 - fn(x, target, ignore_index=ignore_index)
 
+def create_lr_scheduler(optimizer,
+                        num_step: int,
+                        epochs: int,
+                        warmup=True,
+                        warmup_epochs=1,
+                        warmup_factor=1e-3):
+    assert num_step > 0 and epochs > 0
+    if warmup is False:
+        warmup_epochs = 0
+
+    def f(x):
+        """
+        根据step数返回一个学习率倍率因子，
+        注意在训练开始之前，pytorch会提前调用一次lr_scheduler.step()方法
+        """
+        if warmup is True and x <= (warmup_epochs * num_step):
+            alpha = float(x) / (warmup_epochs * num_step)
+            # warmup过程中lr倍率因子从warmup_factor -> 1
+            return warmup_factor * (1 - alpha) + alpha
+        else:
+            # warmup后lr倍率因子从1 -> 0
+            # 参考deeplab_v2: Learning rate policy
+            return (1 - (x - warmup_epochs * num_step) / ((epochs - warmup_epochs) * num_step)) ** 0.9
+
+    return torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda=f)
+
 def main():
-    # os.environ['CUDA_VISIBLE_DEVICES'] = '1' 
+    os.environ['CUDA_VISIBLE_DEVICES'] = '1' 
     # using compute_mean_std.py
     mean = (0.709, 0.381, 0.224)
     std = (0.127, 0.079, 0.043)
-    trainpath = "/home/server/Desktop/zky-sxr/yinteng/LCDNet/txtlabel/train_10.txt"
-    valpath = "/home/server/Desktop/zky-sxr/yinteng/LCDNet/txtlabel/val.txt"
-    savepath = "/home/server/Desktop/zky-sxr/yinteng/LCDNet/LCD_10.pth"
+    trainpath = "/home/sda/Users/YT/LCDnet/train.txt"
+    valpath = "/home/sda/Users/YT/LCDnet/val.txt"
+    savepath = "/home/sda/Users/YT/LCDnet/LCD_11.pth"
 
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     print("using "+str(device))
@@ -138,12 +164,13 @@ def main():
     print("using {} images for training, {} images for validation.".format(train_num,
                                                                            val_num))
 
-    epochs = 50
+    epochs = 100
     best_acc = 0.0
-    seg_lossfunc = nn.BCELoss()
+    # seg_lossfunc = nn.BCELoss()
     cla_lossfunc = nn.CrossEntropyLoss()
     optimizer = optim.Adam(net.parameters(), lr=0.0001)
-    scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=4, min_lr=1e-9)
+    # scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=4, min_lr=1e-9)
+    scheduler = create_lr_scheduler(optimizer, len(train_loader), epochs, warmup=True)
 
     for epoch in range(epochs):
         # train
@@ -162,12 +189,13 @@ def main():
             seg_loss = nn.functional.cross_entropy(seg_out, masks.to(device), ignore_index=255, weight=loss_weight)
             seg_loss += dice_loss(seg_out, dice_target, multiclass=True, ignore_index=255)
             # seg_loss
-            loss = (cla_loss + seg_loss) / 2
+            # loss = cla_loss + 0.7*seg_loss
+            loss = seg_loss
             loss.backward()
             optimizer.step()
             running_loss += loss.item()
             train_bar.desc = "train epoch[{}/{}] loss:{:.3f} cla_loss:{:.3f} seg_loss:{:.3f}".format(epoch + 1,epochs,loss,cla_loss,seg_loss)
-        
+        scheduler.step()
         # validate
         net.eval()
         acc = 0.0
