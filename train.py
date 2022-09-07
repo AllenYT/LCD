@@ -148,7 +148,7 @@ def main():
     # valpath = "/home/sda/Users/YT/LCDnet/val.txt"
     # savepath = "/home/sda/Users/YT/LCDnet/LCD_11.pth"
     trainpath = "/home/server/Desktop/zky-sxr/yinteng/LCDNet/txtlabel/train_10.txt"
-    valpath = "/home/server/Desktop/zky-sxr/yinteng/LCDNet/txtlabel/va_10.txt"
+    valpath = "/home/server/Desktop/zky-sxr/yinteng/LCDNet/txtlabel/val.txt"
     savepath = "/home/server/Desktop/zky-sxr/yinteng/LCDNet/LCD_10.pth"
 
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
