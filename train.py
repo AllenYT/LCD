@@ -12,6 +12,7 @@ from model.MyDataset import MyDataset
 # from model.mymodel import LCDNet
 from model.mymodelv2 import LCDNet
 import transforms as T
+# from model.my_dataset import DriveDataset
 
 class SegmentationPresetTrain:
     def __init__(self, base_size, crop_size, hflip_prob=0.5, vflip_prob=0.5,
@@ -33,7 +34,6 @@ class SegmentationPresetTrain:
 
     def __call__(self, img, target):
         return self.transforms(img, target)
-
 
 class SegmentationPresetEval:
     def __init__(self, mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)):
@@ -141,25 +141,30 @@ def create_lr_scheduler(optimizer,
 
 def main():
     os.environ['CUDA_VISIBLE_DEVICES'] = '1' 
+
     # using compute_mean_std.py
     mean = (0.709, 0.381, 0.224)
     std = (0.127, 0.079, 0.043)
-    # trainpath = "/home/sda/Users/YT/LCDnet/train.txt"
-    # valpath = "/home/sda/Users/YT/LCDnet/val.txt"
-    # savepath = "/home/sda/Users/YT/LCDnet/LCD_11.pth"
-    trainpath = "/home/server/Desktop/zky-sxr/yinteng/LCDNet/txtlabel/train_10.txt"
-    valpath = "/home/server/Desktop/zky-sxr/yinteng/LCDNet/txtlabel/va_10.txt"
-    savepath = "/home/server/Desktop/zky-sxr/yinteng/LCDNet/LCD_10.pth"
 
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    batch_size = 4
+
+    trainpath = "/home/sda/Users/YT/LCDnet/txtlabel/train_10.txt"
+    valpath = "/home/sda/Users/YT/LCDnet/txtlabel/train_10.txt"
+    savepath = "/home/sda/Users/YT/LCDnet/weight/LCD_only_seg.pth"
+
+    # trainpath = "/home/server/Desktop/zky-sxr/yinteng/LCDNet/txtlabel/train_10.txt"
+    # valpath = "/home/server/Desktop/zky-sxr/yinteng/LCDNet/txtlabel/va.txt"
+    # savepath = "/home/server/Desktop/zky-sxr/yinteng/LCDNet/LCD_10.pth"
+
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print("using "+str(device))
     net=LCDNet()
     net.to(device)
 
     train_dataset = MyDataset(trainpath,transforms=get_transform(train=True, mean=mean, std=std))
     val_dataset = MyDataset(valpath,transforms=get_transform(train=False, mean=mean, std=std))
-    train_loader = DataLoader(train_dataset, batch_size=4, shuffle=True)
-    val_loader = DataLoader(val_dataset,batch_size=4, shuffle=True)
+    train_loader = DataLoader(train_dataset, batch_size=6, shuffle=True)
+    val_loader = DataLoader(val_dataset,batch_size=6, shuffle=True)
     
     train_num = len(train_dataset)
     val_num = len(val_dataset)
@@ -169,39 +174,44 @@ def main():
 
     epochs = 100
     best_acc = 0.0
-    # seg_lossfunc = nn.BCELoss()
     cla_lossfunc = nn.CrossEntropyLoss()
     optimizer = optim.Adam(net.parameters(), lr=0.0001)
     # scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=4, min_lr=1e-9)
     scheduler = create_lr_scheduler(optimizer, len(train_loader), epochs, warmup=True)
 
     for epoch in range(epochs):
+
         # train
         net.train()
         running_loss = 0.0
         train_bar = tqdm(train_loader, file=sys.stdout)
+
         for step, data in enumerate(train_bar):
             images, masks, labels = data
             optimizer.zero_grad()
             cla_out, seg_out = net(images.to(device))
+            balance_para = 0.7
+            # cla_loss
             cla_loss = cla_lossfunc(cla_out,labels.to(device))
-            # seg_loss = seg_lossfunc(seg_out,masks.to(device))
+
             # seg_loss 
             loss_weight = torch.as_tensor([1.0, 2.0], device=device)
             dice_target = build_target(masks.to(device), 2, 255)
             seg_loss = nn.functional.cross_entropy(seg_out, masks.to(device), ignore_index=255, weight=loss_weight)
             seg_loss += dice_loss(seg_out, dice_target, multiclass=True, ignore_index=255)
-            # seg_loss
-            # loss = cla_loss + 0.7*seg_loss
+
+            # loss = cla_loss + balance_para*seg_loss
             loss = seg_loss
             loss.backward()
             optimizer.step()
             running_loss += loss.item()
             train_bar.desc = "train epoch[{}/{}] loss:{:.3f} cla_loss:{:.3f} seg_loss:{:.3f}".format(epoch + 1,epochs,loss,cla_loss,seg_loss)
         scheduler.step()
+
         # validate
         net.eval()
         acc = 0.0
+        
         with torch.no_grad():
             val_bar = tqdm(val_loader, file=sys.stdout)
             for val_data in val_bar:
@@ -217,6 +227,14 @@ def main():
         if val_accurate > best_acc:
             best_acc = val_accurate
             torch.save(net.state_dict(), savepath)
+
+
+def parse_args():
+    import argparse
+    parser = argparse.ArgumentParser(description="pytorch unet training")
+
+    args = parser.parse_args()
+    return args
 
 if __name__ == "__main__":
     main()
