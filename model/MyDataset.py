@@ -42,6 +42,7 @@ class MyDataset(Dataset):
         segment_image = Image.fromarray(segment_image)
         img, mask = self.transforms(image,segment_image)
         return img,mask, np.array(int(frac_class))
+        # return img,mask
 
 if __name__ == "__main__":
     path = "/home/sda/Users/YT/spine.txt"

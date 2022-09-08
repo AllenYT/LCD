@@ -5,7 +5,7 @@ import torch.nn.functional as F
 from torch import nn
 from torchvision import models
 
-from unet_parts import *
+from model.unet_parts import *
 
 
 class LCDNet(nn.Module):
@@ -56,10 +56,3 @@ class LCDNet(nn.Module):
         y = self.outc(y)
         return x,y
 
-
-# torch.Size([4, 3, 256, 256])
-# torch.Size([4, 64, 256, 256])
-# torch.Size([4, 64, 256, 256])
-# torch.Size([4, 128, 128, 128])
-# torch.Size([4, 256, 64, 64])
-# torch.Size([4, 512, 32, 32])
