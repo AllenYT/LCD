@@ -145,6 +145,7 @@ def main():
     # using compute_mean_std.py
     mean = (0.709, 0.381, 0.224)
     std = (0.127, 0.079, 0.043)
+<<<<<<< HEAD
 
     batch_size = 4
 
@@ -157,6 +158,16 @@ def main():
     # savepath = "/home/server/Desktop/zky-sxr/yinteng/LCDNet/LCD_10.pth"
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+=======
+    # trainpath = "/home/sda/Users/YT/LCDnet/train.txt"
+    # valpath = "/home/sda/Users/YT/LCDnet/val.txt"
+    # savepath = "/home/sda/Users/YT/LCDnet/LCD_11.pth"
+    trainpath = "/home/server/Desktop/zky-sxr/yinteng/LCDNet/txtlabel/train_10.txt"
+    valpath = "/home/server/Desktop/zky-sxr/yinteng/LCDNet/txtlabel/val.txt"
+    savepath = "/home/server/Desktop/zky-sxr/yinteng/LCDNet/LCD_10.pth"
+
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+>>>>>>> 21a6017ebe93ba7e97222f4aac9cfd5e208d4bc2
     print("using "+str(device))
     net=LCDNet()
     net.to(device)
