@@ -11,12 +11,12 @@ import torch.nn.functional as F
 def time_synchronized():
     torch.cuda.synchronize() if torch.cuda.is_available() else None
     return time.time()
-
+ 
 def main():
     # data_transform = transforms.Compose([transforms.ToTensor()])
     classes = 1 
-    weights_path = "/home/sda/Users/YT/LCDnet/weight/LCD_only_seg.pth"
-    img_path = "/home/sda/Users/YT/DRIVE/training/imagespine/verse001_250_training.png"
+    weights_path = "/home/sda/Users/YT/LCDnet/weight/LCD_loc_weight111_v6.pth"
+    img_path = "/home/sda/Users/YT/DRIVE/training/images_10/verse005_250_training.png"
     # roi_path = "/home/sda/Users/YT/unet/DRIVE/test/label/verse042_250_manual1.png"
     assert os.path.exists(weights_path), f"weights {weights_path} not found."
     assert os.path.exists(img_path), f"image {img_path} not found."
@@ -65,7 +65,7 @@ def main():
         # # # 将不敢兴趣的区域像素设置成0(黑色)
         output[output == 1 ] = 255
         mask = Image.fromarray(output)
-        mask.save("/home/sda/Users/YT/LCDnet/test_result4.png")
+        mask.save("/home/sda/Users/YT/LCDnet/predictImg/001_mask.png")
 
 if __name__ == '__main__':
     main()
