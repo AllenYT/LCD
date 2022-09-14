@@ -41,7 +41,7 @@ class LCDNet(nn.Module):
         x2 = self.conv2(self.encoder.maxpool(x1))   # 64->64
         x3 = self.conv3(x2)                         # 64->128
         x4 = self.conv4(x3)                         # 128->256
-        x5 = self.conv5(x4)                         # 256->512
+        x5 = self.conv5(x4)                         # 256->512  (512,32,32)
 
         # classification
         x = self.avgpool(x5)
